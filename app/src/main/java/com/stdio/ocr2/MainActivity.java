@@ -28,18 +28,13 @@ import com.google.android.gms.vision.text.TextRecognizer;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import java.io.File;
 import java.io.IOException;
+
+import in.mayanknagwanshi.imagepicker.ImageSelectActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int CAMERA_REQUEST_CODE=200;
-    private static final int STORAGE_REQUEST_CODE=400;
-    private static final int IMAGE_PICK_GALLERY_CODE=1000;
-    private static final int IMAGE_PICK_CAMERA_CODE=1001;
-    String cameraPermission[];
-    String storagePermission[];
-    String st;
-    Uri image_uri;
     TextView textView;
 
     @Override
@@ -48,9 +43,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         textView = findViewById(R.id.textView);
-        cameraPermission=new String[]{Manifest.permission.CAMERA,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE};
-        storagePermission = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE};
     }
 
     public void onClick(View v) {
@@ -58,117 +50,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showImageImportDialog() {
-        String[] items={"Camera","Gallery"};
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        dialog.setTitle("Select Image");
-        dialog.setItems(items, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                if(i==0)
-                {
-                    if(!checkCameraPermission()){
-                        requestCameraPermission();
-                    }
-                    else
-                    {
-                        pickCamera();
-                    }
-                }
-                if(i==1)
-                {
-                    if(!checkStoragePermission()){
-                        requestStoragePermission();
-                    }
-                    else{
-                        pickGallery();
-                    }
-                }
-            }
-        });
-        dialog.create().show();
-    }
-
-    private void pickGallery() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType("image/*");
-        startActivityForResult(intent,IMAGE_PICK_GALLERY_CODE);
-    }
-
-    private void pickCamera() {
-        ContentValues values= new ContentValues();
-        values.put(MediaStore.Images.Media.TITLE,"NewPic");
-        values.put(MediaStore.Images.Media.DESCRIPTION,"Image to text");
-        image_uri=getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT,image_uri);
-        startActivityForResult(cameraIntent,IMAGE_PICK_CAMERA_CODE);
-
-
-    }
-
-    private void requestStoragePermission() {
-        ActivityCompat.requestPermissions( this,storagePermission,STORAGE_REQUEST_CODE);
-    }
-
-    private boolean checkStoragePermission() {
-        boolean result= ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)==(PackageManager.PERMISSION_GRANTED);
-        return result;
-    }
-
-    private void requestCameraPermission() {
-        ActivityCompat.requestPermissions( this,cameraPermission,CAMERA_REQUEST_CODE);
-    }
-
-    private boolean checkCameraPermission() {
-        boolean result= ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA)==(PackageManager.PERMISSION_GRANTED);
-        boolean result1= ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)==(PackageManager.PERMISSION_GRANTED);
-        return result && result1;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode){
-            case CAMERA_REQUEST_CODE:
-                if(grantResults.length>0){
-                    boolean cameraAccepted= grantResults[0]==PackageManager.PERMISSION_GRANTED;
-                    boolean writeStorageAccepted= grantResults[0]==PackageManager.PERMISSION_GRANTED;
-
-                    if(cameraAccepted && writeStorageAccepted){pickCamera();}
-
-                    else {
-                        Toast.makeText(this,"permission denied",Toast.LENGTH_SHORT).show();
-                    }
-                }
-                break;
-
-            case STORAGE_REQUEST_CODE:
-                if(grantResults.length>0){
-
-                    boolean writeStorageAccepted= grantResults[0]==PackageManager.PERMISSION_GRANTED;
-
-                    if(writeStorageAccepted){pickGallery(); }
-
-                    else {
-                        Toast.makeText(this,"permission denied",Toast.LENGTH_SHORT).show();
-                    }
-                }
-                break;
-        }
+        Intent intent = new Intent(this, ImageSelectActivity.class);
+        intent.putExtra(ImageSelectActivity.FLAG_COMPRESS, false);//default is true
+        intent.putExtra(ImageSelectActivity.FLAG_CAMERA, true);//default is true
+        intent.putExtra(ImageSelectActivity.FLAG_GALLERY, true);//default is true
+        startActivityForResult(intent, 1213);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            if (requestCode == IMAGE_PICK_GALLERY_CODE) {
-                CropImage.activity(data.getData())
-                        .setGuidelines(CropImageView.Guidelines.ON).start(this);
-            }
-            if (requestCode == IMAGE_PICK_CAMERA_CODE) {
-                CropImage.activity(image_uri)
+            if (requestCode == 1213) {
+                String filePath = data.getStringExtra(ImageSelectActivity.RESULT_FILE_PATH);
+                CropImage.activity(Uri.fromFile(new File(filePath)))
                         .setGuidelines(CropImageView.Guidelines.ON).start(this);
             }
         }
